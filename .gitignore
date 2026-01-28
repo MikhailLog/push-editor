@@ -1,0 +1,36 @@
+# Зависимости
+node_modules/
+venv/
+__pycache__/
+
+# Окружение
+.env
+.env.local
+.env.*.local
+
+# Логи
+*.log
+npm-debug.log*
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Временные файлы
+*.tmp
+*.temp
+.cache/
+
+# Шаблоны пользователя (JSON файлы в папке templates)
+# Оставляем только README.md в templates/
+templates/*.json
+
+# Cursor (правила деплоя оставляем в репозитории)
+# *.mdc

@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Пуш уведомления - конструктор 9:16 - экспорт WebM/MP4</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&family=Roboto:wght@300;400;700;900&family=Montserrat:wght@300;400;600;700;900&family=Open+Sans:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+<script type="module">
+  // Динамическая загрузка FFmpeg только при необходимости
+  window.loadFFmpeg = async function() {
+    if (window.FFmpeg) return window.FFmpeg;
+    try {
+      // Пробуем несколько вариантов загрузки
+      try {
+        const { FFmpeg } = await import('https://unpkg.com/@ffmpeg/ffmpeg@0.12.6/dist/esm/index.js');
+        window.FFmpeg = FFmpeg;
+        return FFmpeg;
+      } catch (e) {
+        console.warn('Ошибка загрузки FFmpeg с unpkg, пробуем jsdelivr:', e);
+        const { FFmpeg } = await import('https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.6/dist/esm/index.js');
+        window.FFmpeg = FFmpeg;
+        return FFmpeg;
+      }
+    } catch (e) {
+      console.error('Критическая ошибка загрузки FFmpeg:', e);
+      throw e;
+    }
+  };
+</script>
+</head>
+<body>
+<div class="app">
+  <div class="panel">
+    <div class="tabs">
+      <div class="tab active" data-pane="scene">Сцена</div>
+      <div class="tab" data-pane="styles">Стили</div>
+      <div class="tab" data-pane="anim">Анимация</div>
+      <div class="tab" data-pane="tpl">Шаблоны</div>
+      <div class="tab" data-pane="export">Экспорт</div>
+    </div>
+
+    <div class="content">
+      <!-- SCENE -->
+      <div class="pane active" id="pane-scene">
+        <div class="card twoCols">
+          <div class="row"><label>Ширина</label><input id="customW" type="number" min="256" step="1" value="1080"></div>
+          <div class="row"><label>Высота</label><input id="customH" type="number" min="256" step="1" value="1920"></div>
+          <div class="row"><label>Пресет</label>
+            <select id="preset">
+              <option value="1080x1920" selected>9x16 - 1080x1920</option>
+              <option value="720x1280">9x16 - 720x1280</option>
+              <option value="1440x2560">9x16 - 1440x2560</option>
+              <option value="1920x1080">16x9 - 1920x1080</option>
+              <option value="1280x720">16x9 - 1280x720</option>
+              <option value="1080x1080">1x1 - 1080x1080</option>
+              <option value="1350x1080">4x5 - 1080x1350</option>
+              <option value="1080x1350">4x5 - 1080x1350</option>
+              <option value="1024x1365">3x4 - 1024x1365</option>
+              <option value="1365x1024">4x3 - 1365x1024</option>
+            </select>
+          </div>
+          <div class="row" style="grid-column:1/-1"><label>Цвет фона</label><input type="color" id="bgColor" value="#09c35a"><input type="range" id="bgAlpha" min="0" max="1" step="0.01" value="1" style="flex:1"></div>
+          <div class="row" style="grid-column:1/-1"><label>Масштаб предпросмотра</label><input type="range" id="previewScale" min="0.2" max="0.9" step="0.01" value="0.33" style="flex:1"></div>
+          <div class="hint" style="grid-column:1/-1">Двойной клик по аватару - загрузка изображения. Двойной клик внутри плашки - новый текст.</div>
+        </div>
+
+        <div class="card">
+          <div class="row"><label>Форма аватара</label>
+            <select id="imgShape">
+              <option value="rounded" selected>Скругленные</option>
+              <option value="square">Квадрат</option>
+              <option value="circle">Круг</option>
+            </select>
+          </div>
+          <div class="row"><label>Размер аватара</label><input id="imgSize" type="range" min="40" max="260" step="1" value="120"><span style="font-size:11px;color:var(--text-secondary);min-width:35px;text-align:right" id="imgSizeValue">120px</span></div>
+          <div class="row"><label>Скругление</label><input id="imgRadius" type="range" min="0" max="80" step="1" value="18"><span style="font-size:11px;color:var(--text-secondary);min-width:35px;text-align:right" id="imgRadiusValue">18px</span></div>
+          <div class="hint">Смещение убрано - двигайте аватар мышкой внутри плашки.</div>
+        </div>
+      </div>
+
+      <!-- STYLES -->
+      <div class="pane" id="pane-styles">
+        <div class="card">
+          <div class="row"><label>Шрифт</label>
+            <select id="fontFamily">
+              <option>Inter</option><option>Roboto</option><option>Montserrat</option><option>Open Sans</option>
+              <option>Arial</option><option>Georgia</option><option>Verdana</option>
+            </select>
+          </div>
+          <div class="row"><label>Насыщенность</label>
+            <select id="fontWeight"><option>300</option><option selected>400</option><option>600</option><option>700</option><option>900</option></select>
+          </div>
+          <div class="row"><label>Размер, px</label><input id="fontSize" type="number" min="8" max="120" step="1" value="42"></div>
+          <div class="row"><label>Цвет</label><input id="fontColor" type="color" value="#111111"></div>
+          <div class="row"><label>Выравнивание</label>
+            <select id="fontAlign"><option>left</option><option>center</option><option>right</option></select>
+          </div>
+          <div class="row"><label>Интерлиньяж</label><input id="lineHeight" type="range" min="0.9" max="1.8" step="0.01" value="1.1"><span style="font-size:11px;color:var(--text-secondary);min-width:40px;text-align:right" id="lineHeightValue">1.1</span></div>
+          <div class="row"><label>Интенсивность блюра</label><input id="blurIntensity" type="range" min="0" max="50" step="1" value="10"><span style="font-size:11px;color:var(--text-secondary);min-width:40px;text-align:right" id="blurIntensityValue">10</span></div>
+          <div class="toolbar">
+            <button class="btn" id="btnAddText">Добавить текст</button>
+            <button class="btn" id="btnCenter">Центр по плашке</button>
+          </div>
+          <div class="hint">Редактируйте активный текст прямо в плашке. Enter - новая строка, Ctrl+Enter - сохранить. Delete удаляет выбранный текст. Ctrl+Z отменяет последнее действие. Для блюра используйте синтаксис [текст:степень] прямо в тексте, где степень от 1 до 100. Например: "Revo[lute:10] и [слово:50] другое".</div>
+        </div>
+
+        <div class="card">
+          <div class="row"><label>Цвет плашки</label><input id="pushColor" type="color" value="#ffffff"></div>
+          <div class="row"><label>Прозрачность</label><input id="pushOpacity" type="range" min="0.2" max="1" step="0.01" value="1"><span style="font-size:11px;color:var(--text-secondary);min-width:40px;text-align:right" id="pushOpacityValue">100%</span></div>
+          <div class="row"><label>Скругление</label><input id="pushRadius" type="range" min="0" max="60" step="1" value="20"><span style="font-size:11px;color:var(--text-secondary);min-width:35px;text-align:right" id="pushRadiusValue">20px</span></div>
+          <div class="row"><label>Тень</label><input id="pushShadow" type="range" min="0" max="40" step="1" value="18"><span style="font-size:11px;color:var(--text-secondary);min-width:35px;text-align:right" id="pushShadowValue">18px</span></div>
+          <div class="hint">Размер и позиция плашки убраны из панели - двигайте и растягивайте мышкой.</div>
+        </div>
+      </div>
+
+      <!-- ANIMATION -->
+      <div class="pane" id="pane-anim">
+        <div class="card twoCols">
+          <div class="row"><label>До начала, c</label><input id="aBeforeStart" type="number" min="0" step="0.1" value="0"></div>
+          <div class="row"><label>Задержка, c</label><input id="aDelay" type="number" min="0" step="0.1" value="0"></div>
+          <div class="row"><label>Появление, c</label><input id="aIn" type="number" min="0.1" step="0.1" value="0.6"></div>
+          <div class="row"><label>Сторона появления</label>
+            <select id="aInDirection">
+              <option value="top" selected>Сверху</option>
+              <option value="bottom">Снизу</option>
+              <option value="left">Слева</option>
+              <option value="right">Справа</option>
+            </select>
+          </div>
+          <div class="row"><label>Пауза, c</label><input id="aHold" type="number" min="0" step="0.1" value="1.4"></div>
+          <div class="row"><label>Уход, c</label><input id="aOut" type="number" min="0.1" step="0.1" value="0.6"></div>
+          <div class="row"><label>Сторона ухода</label>
+            <select id="aOutDirection">
+              <option value="top" selected>Вверх</option>
+              <option value="bottom">Вниз</option>
+              <option value="left">Влево</option>
+              <option value="right">Вправо</option>
+            </select>
+          </div>
+          <div class="row"><label>После окончания, c</label><input id="aAfterEnd" type="number" min="0" step="0.1" value="0"></div>
+          <div class="row"><label>Нажатие</label>
+            <select id="pressEnabled"><option value="on" selected>Включить</option><option value="off">Выключить</option></select>
+          </div>
+          <div class="row"><label>Момент, c</label><input id="pressAt" type="number" min="0" step="0.05" value="1.0"></div>
+          <div class="row"><label>Длительность, c</label><input id="pressDur" type="number" min="0.05" step="0.05" value="0.18"></div>
+          <div class="row"><label>Глубина, %</label><input id="pressDepth" type="range" min="0" max="12" step="0.5" value="6"><span style="font-size:11px;color:var(--text-secondary);min-width:40px;text-align:right" id="pressDepthValue">6%</span></div>
+          <div class="toolbar" style="grid-column:1/-1">
+            <button class="btn" id="btnPreview">Предпросмотр</button>
+            <button class="btn" id="btnStop">Стоп</button>
+          </div>
+          <div class="hint" style="grid-column:1/-1">Выберите сторону появления и ухода анимации. Нажатие имитирует надавливание всей плашки как единого объекта. "До начала" - пауза перед анимацией, "После окончания" - пауза после ухода.</div>
+        </div>
+      </div>
+
+      <!-- TEMPLATES -->
+      <div class="pane" id="pane-tpl">
+        <div class="card">
+          <div class="row"><label>Имя шаблона</label><input id="tplName" type="text" placeholder="например: ios-light-left"></div>
+          <div class="toolbar">
+            <button class="btn" id="btnSaveTpl">Сохранить</button>
+            <button class="btn" id="btnExportTpl">Скачать .json</button>
+            <button class="btn" id="btnImportTpl">Импорт .json</button>
+          </div>
+        </div>
+        <div class="card" style="grid-column:1/-1">
+          <div class="grid" id="tplGrid"></div>
+          <div class="hint">Предпросмотр показывает только плашку, без зеленого фона. Клик по миниатюре загружает шаблон. Шаблоны сохраняются в папку templates проекта. Используйте кнопку "Загрузить шаблоны из папки" для загрузки сохраненных шаблонов.</div>
+        </div>
+      </div>
+
+      <!-- EXPORT -->
+      <div class="pane" id="pane-export">
+        <div class="card">
+          <div class="row"><label>FPS</label>
+            <select id="fps"><option>30</option><option>60</option></select>
+          </div>
+          <div class="row"><label>Битрейт</label>
+            <select id="vbr">
+              <option value="6000000">6 Мбит</option>
+              <option value="8000000" selected>8 Мбит</option>
+              <option value="12000000">12 Мбит</option>
+            </select>
+          </div>
+          <div class="row"><label>Формат</label>
+            <select id="exportFormat">
+              <option value="webm">WebM (VP9)</option>
+              <option value="mp4" selected>MP4 (H.264)</option>
+            </select>
+          </div>
+          <div class="toolbar">
+            <button class="btn primary" id="btnRecord">Записать видео</button>
+          </div>
+          <div class="hint">Во время записи полностью скрываются контуры и вспомогательная графика. Текст не дублируется. MP4 конвертируется из WebM (может занять время).</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="stageWrap">
+    <div class="stageBox">
+      <canvas id="stage" width="1080" height="1920"></canvas>
+      <textarea id="editor" class="editor"></textarea>
+    </div>
+  </div>
+</div>
+
+<input id="hiddenImgInput" type="file" accept="image/*" style="display:none" />
+
+<script type="module" src="js/app.js"></script>
+<script>
+  // Обработка ошибок загрузки модулей
+  window.addEventListener('error', function(e) {
+    if (e.message && e.message.includes('Failed to fetch dynamically imported module')) {
+      alert('Ошибка: Модули ES6 не могут загружаться через file:// протокол.\n\nПожалуйста, запустите локальный сервер:\n\nPython: python -m http.server 8000\nNode: npx http-server\n\nИли откройте через Live Server в VS Code.');
+    }
+    console.error('Error:', e);
+  });
+</script>
+</body>
+</html>
