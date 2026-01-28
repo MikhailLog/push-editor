@@ -1657,6 +1657,20 @@ async function recordWebM() {
 async function recordWebMForMP4() {
   await ensureFontsLoaded();
   
+  // Проверяем доступность HTTPS (требуется для FFmpeg Web Workers)
+  const isSecure = window.location.protocol === 'https:' || window.location.hostname === 'localhost';
+  if (!isSecure) {
+    const useWebM = confirm(
+      'Экспорт в MP4 требует HTTPS соединения.\n\n' +
+      'На HTTP доступен только WebM формат.\n\n' +
+      'Нажмите OK чтобы скачать WebM, или Отмена для выбора другого формата.'
+    );
+    if (useWebM) {
+      await recordWebM();
+    }
+    return;
+  }
+  
   // Показываем уведомление о загрузке FFmpeg
   if (!ffmpegLoaded) {
     ui.btnRecord.disabled = true;
@@ -1917,10 +1931,17 @@ function init() {
   applyUI();
   updateCanvasCssSize();
   ensureFontsLoaded();
-  // Загружаем FFmpeg в фоне (не блокируем инициализацию)
-  initFFmpeg().catch(e => {
-    console.warn('FFmpeg будет загружен при необходимости:', e);
-  });
+  
+  // Загружаем FFmpeg только если HTTPS (иначе Web Workers не работают)
+  const isSecure = window.location.protocol === 'https:' || window.location.hostname === 'localhost';
+  if (isSecure) {
+    initFFmpeg().catch(e => {
+      console.warn('FFmpeg будет загружен при необходимости:', e);
+    });
+  } else {
+    console.info('FFmpeg недоступен на HTTP. Для MP4 экспорта используйте HTTPS.');
+  }
+  
   initTemplatesDir(); // Инициализируем работу с шаблонами
   loop();
 }
