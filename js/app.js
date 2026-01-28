@@ -24,26 +24,27 @@ async function initFFmpeg() {
       throw new Error('Не удалось загрузить класс FFmpeg');
     }
     
-    // Загружаем util для toBlobURL
-    let toBlobURL;
-    try {
-      const util = await import('https://unpkg.com/@ffmpeg/util@0.12.1/dist/esm/index.js');
-      toBlobURL = util.toBlobURL;
-    } catch (e) {
-      console.warn('Ошибка загрузки util с unpkg, пробуем jsdelivr:', e);
-      const util = await import('https://cdn.jsdelivr.net/npm/@ffmpeg/util@0.12.1/dist/esm/index.js');
-      toBlobURL = util.toBlobURL;
-    }
-    
-    if (!toBlobURL) {
-      throw new Error('Не удалось загрузить toBlobURL');
-    }
+    // Локальная реализация toBlobURL (не зависит от CDN)
+    const toBlobURL = async (url, mimeType) => {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch ${url}: ${response.status}`);
+      }
+      const blob = await response.blob();
+      return URL.createObjectURL(new Blob([blob], { type: mimeType }));
+    };
     
     ffmpeg = new FFmpeg();
     
     // Загружаем core и wasm файлы
     // Используем несколько вариантов URL для надежности
+    // Локальный путь имеет приоритет (работает без HTTPS)
+    const localBase = window.FFMPEG_CORE_PATH || './vendor/ffmpeg';
     const urls = [
+      {
+        base: localBase,
+        name: 'local'
+      },
       {
         base: 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/umd',
         name: 'jsdelivr'

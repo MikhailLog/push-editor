@@ -6,27 +6,22 @@
 <title>Пуш уведомления - конструктор 9:16 - экспорт WebM/MP4</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&family=Roboto:wght@300;400;700;900&family=Montserrat:wght@300;400;600;700;900&family=Open+Sans:wght@300;400;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/styles.css">
-<script type="module">
-  // Динамическая загрузка FFmpeg только при необходимости
-  window.loadFFmpeg = async function() {
-    if (window.FFmpeg) return window.FFmpeg;
-    try {
-      // Пробуем несколько вариантов загрузки
-      try {
-        const { FFmpeg } = await import('https://unpkg.com/@ffmpeg/ffmpeg@0.12.6/dist/esm/index.js');
-        window.FFmpeg = FFmpeg;
-        return FFmpeg;
-      } catch (e) {
-        console.warn('Ошибка загрузки FFmpeg с unpkg, пробуем jsdelivr:', e);
-        const { FFmpeg } = await import('https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.6/dist/esm/index.js');
-        window.FFmpeg = FFmpeg;
-        return FFmpeg;
-      }
-    } catch (e) {
-      console.error('Критическая ошибка загрузки FFmpeg:', e);
-      throw e;
+<script src="https://unpkg.com/@ffmpeg/ffmpeg@0.12.6/dist/umd/ffmpeg.js"></script>
+<script>
+  // FFmpeg загружается через UMD, делаем его доступным
+  window.loadFFmpeg = function() {
+    if (window.FFmpegWASM && window.FFmpegWASM.FFmpeg) {
+      return Promise.resolve(window.FFmpegWASM.FFmpeg);
     }
+    return Promise.reject(new Error('FFmpeg не загружен'));
   };
+  
+  // Определяем базовый путь для локальных ресурсов
+  window.FFMPEG_CORE_PATH = (function() {
+    const path = window.location.pathname;
+    const base = path.substring(0, path.lastIndexOf('/') + 1);
+    return base + 'vendor/ffmpeg';
+  })();
 </script>
 </head>
 <body>

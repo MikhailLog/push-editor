@@ -3,10 +3,11 @@ node_modules/
 venv/
 __pycache__/
 
-# Окружение
+# Окружение и секреты
 .env
 .env.local
 .env.*.local
+SECRETS.env
 
 # Логи
 *.log
