@@ -1,5 +1,5 @@
 // Основной файл приложения
-import { state, pushHistory, undo, serialize, deserialize, clampPush, readTpls, writeTpl, writeTplAsNew, deleteTpl, loadTemplate, loadTemplatesFromFiles, initTemplatesDir, getTemplatesDirHandle, setTemplatesDirHandle } from './state.js';
+import { state, pushHistory, undo, serialize, deserialize, clampPush, readTpls, writeTpl, deleteTpl, loadTemplate, initTemplatesDir } from './state.js';
 import {
   uid, roundRect, handles, wrap, wrapCanvas, cssFont, toHex, hexToRgb,
   easeOutCubic, easeInCubic, download
@@ -346,37 +346,6 @@ function setupEventListeners() {
     
     ui.btnSaveTpl.disabled = false;
     ui.btnSaveTpl.textContent = 'Сохранить';
-  });
-
-  // Сохранить как новый шаблон
-  ui.btnSaveAsNew.addEventListener('click', async () => {
-    pushHistory('saveAsNew');
-    let name = ui.tplName.value.trim();
-    if (!name) {
-      name = 'template-' + Date.now();
-    } else {
-      // Добавляем суффикс для уникальности
-      name = name + '-copy';
-    }
-    const data = serialize(true);
-    const thumb = renderPushThumb();
-    
-    ui.btnSaveAsNew.disabled = true;
-    ui.btnSaveAsNew.textContent = 'Создание...';
-    
-    try {
-      const saved = await writeTplAsNew(name, data, thumb);
-      if (saved) {
-        await refreshTplGrid();
-        ui.tplName.value = name;
-      }
-    } catch (e) {
-      console.error('Ошибка создания:', e);
-      alert('Ошибка создания: ' + e.message);
-    }
-    
-    ui.btnSaveAsNew.disabled = false;
-    ui.btnSaveAsNew.textContent = 'Как новый';
   });
 
   ui.btnExportTpl.addEventListener('click', () => {
@@ -728,49 +697,11 @@ async function refreshTplGrid() {
   const grid = ui.tplGrid;
   grid.innerHTML = '';
   
-  // Кнопка обновления списка
-  const refreshBtn = document.createElement('button');
-  refreshBtn.className = 'btn';
-  refreshBtn.textContent = 'Обновить список';
-  refreshBtn.style.cssText = 'margin-right:8px;';
-  refreshBtn.addEventListener('click', async () => {
-    refreshBtn.disabled = true;
-    refreshBtn.textContent = 'Загрузка...';
-    await refreshTplGrid();
-  });
-  
-  // Кнопка загрузки из папки (fallback)
-  const loadBtn = document.createElement('button');
-  loadBtn.className = 'btn';
-  loadBtn.textContent = 'Импорт из папки';
-  loadBtn.title = 'Загрузить локальные шаблоны из папки';
-  loadBtn.addEventListener('click', async () => {
-    loadBtn.disabled = true;
-    await loadTemplatesFromFiles();
-    await refreshTplGrid();
-    loadBtn.disabled = false;
-  });
-  
-  const btnRow = document.createElement('div');
-  btnRow.style.cssText = 'grid-column:1/-1; margin-bottom:10px; display:flex; gap:8px;';
-  btnRow.appendChild(refreshBtn);
-  btnRow.appendChild(loadBtn);
-  grid.appendChild(btnRow);
-  
   const all = await readTpls();
   Object.entries(all).forEach(([name, obj]) => {
     const div = document.createElement('div');
     div.className = 'thumb';
     div.style.position = 'relative';
-    
-    // Иконка сервера если шаблон на сервере
-    if (obj.fromServer) {
-      const serverIcon = document.createElement('span');
-      serverIcon.innerHTML = '☁';
-      serverIcon.title = 'Сохранён на сервере';
-      serverIcon.style.cssText = 'position:absolute; top:4px; left:4px; font-size:14px; opacity:0.7;';
-      div.appendChild(serverIcon);
-    }
     
     // Крестик для удаления
     const deleteBtn = document.createElement('button');
@@ -1970,7 +1901,7 @@ function init() {
     hiddenImgInput: $('#hiddenImgInput'),
     pushColor: $('#pushColor'), pushOpacity: $('#pushOpacity'), pushRadius: $('#pushRadius'), pushShadow: $('#pushShadow'),
     fps: $('#fps'), vbr: $('#vbr'), exportFormat: $('#exportFormat'),
-    tplName: $('#tplName'), btnSaveTpl: $('#btnSaveTpl'), btnSaveAsNew: $('#btnSaveAsNew'),
+    tplName: $('#tplName'), btnSaveTpl: $('#btnSaveTpl'),
     btnExportTpl: $('#btnExportTpl'), btnImportTpl: $('#btnImportTpl'), tplGrid: $('#tplGrid')
   };
   

@@ -296,68 +296,30 @@ export async function loadTemplate(name) {
   throw new Error('Шаблон не найден');
 }
 
-// Сохранить шаблон
+// Сохранить шаблон (всегда как новый на сервере)
 export async function writeTpl(name, data, thumb) {
-  // Сохраняем в кеш
-  if (!templatesCache[name]) {
-    templatesCache[name] = {};
-  }
-  templatesCache[name].data = data;
-  templatesCache[name].thumb = thumb;
-  
-  // Если API доступен - сохраняем на сервер
-  if (await checkApiAvailable()) {
-    try {
-      const existing = templatesCache[name];
-      
-      if (existing && existing.fromServer && existing.id) {
-        // Обновляем существующий
-        const result = await updateTemplateOnServer(existing.id, name, data, thumb);
-        templatesCache[name].updated = result.updated;
-        console.log('Шаблон обновлён на сервере:', name);
-      } else {
-        // Создаём новый
-        const result = await saveTemplateToServer(name, data, thumb);
-        templatesCache[name].id = result.id;
-        templatesCache[name].fromServer = true;
-        templatesCache[name].created = result.created;
-        console.log('Шаблон сохранён на сервере:', name);
-      }
-      return true;
-    } catch (e) {
-      console.error('Ошибка сохранения на сервер:', e);
-      alert('Ошибка сохранения на сервер: ' + e.message);
-      return false;
-    }
+  // Проверяем доступность API
+  if (!await checkApiAvailable()) {
+    alert('Сервер недоступен. Проверьте подключение.');
+    return false;
   }
   
-  // Fallback: сохраняем локально через File System API
-  return await saveTemplateLocally(name, data, thumb);
-}
-
-// Сохранить как новый шаблон (копия)
-export async function writeTplAsNew(name, data, thumb) {
-  // Всегда создаём новый, не обновляем существующий
-  if (await checkApiAvailable()) {
-    try {
-      const result = await saveTemplateToServer(name, data, thumb);
-      templatesCache[name] = {
-        id: result.id,
-        data: data,
-        thumb: thumb,
-        fromServer: true,
-        created: result.created
-      };
-      console.log('Новый шаблон создан:', name);
-      return true;
-    } catch (e) {
-      console.error('Ошибка создания шаблона:', e);
-      alert('Ошибка создания шаблона: ' + e.message);
-      return false;
-    }
+  try {
+    const result = await saveTemplateToServer(name, data, thumb);
+    templatesCache[name] = {
+      id: result.id,
+      data: data,
+      thumb: thumb,
+      fromServer: true,
+      created: result.created
+    };
+    console.log('Шаблон сохранён на сервере:', name);
+    return true;
+  } catch (e) {
+    console.error('Ошибка сохранения на сервер:', e);
+    alert('Ошибка сохранения: ' + e.message);
+    return false;
   }
-  
-  return await saveTemplateLocally(name, data, thumb);
 }
 
 // Удалить шаблон
