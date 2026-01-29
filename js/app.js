@@ -338,6 +338,8 @@ function setupEventListeners() {
       if (saved) {
         await refreshTplGrid();
         ui.tplName.value = name;
+        // Показываем уведомление об успехе
+        showNotification(`Шаблон "${name}" сохранён`);
       }
     } catch (e) {
       console.error('Ошибка сохранения:', e);
@@ -345,7 +347,7 @@ function setupEventListeners() {
     }
     
     ui.btnSaveTpl.disabled = false;
-    ui.btnSaveTpl.textContent = 'Сохранить';
+    ui.btnSaveTpl.textContent = 'Сохранить шаблон';
   });
 
   ui.btnExportTpl.addEventListener('click', () => {
@@ -753,6 +755,47 @@ async function refreshTplGrid() {
     hint.textContent = 'Шаблоны не найдены. Создайте первый шаблон!';
     grid.appendChild(hint);
   }
+}
+
+// Уведомление
+function showNotification(message) {
+  const notification = document.createElement('div');
+  notification.style.cssText = `
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: #2a7de1;
+    color: #fff;
+    padding: 14px 24px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+    z-index: 10000;
+    animation: slideIn 0.3s ease;
+  `;
+  notification.textContent = message;
+  
+  // Добавляем стиль анимации
+  if (!document.getElementById('notification-style')) {
+    const style = document.createElement('style');
+    style.id = 'notification-style';
+    style.textContent = `
+      @keyframes slideIn {
+        from { transform: translateY(20px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+  
+  document.body.appendChild(notification);
+  setTimeout(() => {
+    notification.style.opacity = '0';
+    notification.style.transform = 'translateY(20px)';
+    notification.style.transition = 'all 0.3s ease';
+    setTimeout(() => notification.remove(), 300);
+  }, 2500);
 }
 
 // Модальное окно подтверждения удаления
