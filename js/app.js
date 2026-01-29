@@ -325,8 +325,12 @@ function setupEventListeners() {
   ui.btnStop.addEventListener('click', stopAll);
 
   ui.btnSaveTpl.addEventListener('click', async () => {
+    // Показываем модальное окно для ввода названия
+    const defaultName = 'template-' + new Date().toISOString().slice(0,10).replace(/-/g, '');
+    const name = await showSaveTemplateDialog(defaultName);
+    if (!name) return; // Отменено
+    
     pushHistory('saveTpl');
-    const name = ui.tplName.value.trim() || 'template-' + Date.now();
     const data = serialize(true);
     const thumb = renderPushThumb();
     
@@ -337,8 +341,6 @@ function setupEventListeners() {
       const saved = await writeTpl(name, data, thumb);
       if (saved) {
         await refreshTplGrid();
-        ui.tplName.value = name;
-        // Показываем уведомление об успехе
         showNotification(`Шаблон "${name}" сохранён`);
       }
     } catch (e) {
@@ -351,7 +353,7 @@ function setupEventListeners() {
   });
 
   ui.btnExportTpl.addEventListener('click', () => {
-    const name = ui.tplName.value.trim() || 'template';
+    const name = 'template-' + new Date().toISOString().slice(0,10).replace(/-/g, '');
     const payload = { data: serialize(true), created: Date.now() };
     download(JSON.stringify(payload, null, 2), name + '.json', 'application/json');
   });
@@ -737,8 +739,6 @@ async function refreshTplGrid() {
         clampPush();
         hideEditor();
         applyUI();
-        // Устанавливаем имя шаблона в поле ввода
-        if (ui.tplName) ui.tplName.value = name;
       } catch (e) {
         console.error('Ошибка загрузки шаблона:', e);
         alert('Ошибка загрузки шаблона: ' + e.message);
@@ -748,6 +748,122 @@ async function refreshTplGrid() {
     grid.appendChild(div);
   });
   
+}
+
+// Модальное окно для сохранения шаблона
+function showSaveTemplateDialog(defaultName) {
+  return new Promise((resolve) => {
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+    `;
+    
+    const dialog = document.createElement('div');
+    dialog.style.cssText = `
+      background: var(--card-bg, #1a1d24);
+      border: 1px solid var(--border-color, #2a2d35);
+      border-radius: 12px;
+      padding: 24px;
+      max-width: 400px;
+      width: 90%;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    `;
+    
+    const title = document.createElement('div');
+    title.textContent = 'Сохранить шаблон';
+    title.style.cssText = `
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      color: var(--text-primary, #e0e0e0);
+    `;
+    
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.value = defaultName;
+    input.placeholder = 'Название шаблона';
+    input.style.cssText = `
+      width: 100%;
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border-color, #2a2d35);
+      background: var(--input-bg, #0f1419);
+      color: var(--text-primary, #e0e0e0);
+      font-size: 14px;
+      margin-bottom: 20px;
+      outline: none;
+      box-sizing: border-box;
+    `;
+    input.addEventListener('focus', () => input.select());
+    
+    const buttons = document.createElement('div');
+    buttons.style.cssText = `display: flex; gap: 12px; justify-content: flex-end;`;
+    
+    const cancelBtn = document.createElement('button');
+    cancelBtn.textContent = 'Отмена';
+    cancelBtn.style.cssText = `
+      padding: 10px 20px;
+      border-radius: 8px;
+      border: 1px solid var(--border-color, #2a2d35);
+      background: transparent;
+      color: var(--text-secondary, #a0a0a0);
+      font-size: 14px;
+      cursor: pointer;
+    `;
+    
+    const saveBtn = document.createElement('button');
+    saveBtn.textContent = 'Сохранить';
+    saveBtn.style.cssText = `
+      padding: 10px 20px;
+      border-radius: 8px;
+      border: none;
+      background: #2a7de1;
+      color: #fff;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+    `;
+    
+    const close = (result) => {
+      modal.remove();
+      resolve(result);
+    };
+    
+    cancelBtn.addEventListener('click', () => close(null));
+    saveBtn.addEventListener('click', () => {
+      const name = input.value.trim();
+      if (name) close(name);
+    });
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        const name = input.value.trim();
+        if (name) close(name);
+      }
+      if (e.key === 'Escape') close(null);
+    });
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) close(null);
+    });
+    
+    buttons.appendChild(cancelBtn);
+    buttons.appendChild(saveBtn);
+    dialog.appendChild(title);
+    dialog.appendChild(input);
+    dialog.appendChild(buttons);
+    modal.appendChild(dialog);
+    document.body.appendChild(modal);
+    
+    input.focus();
+  });
 }
 
 // Уведомление
@@ -1937,8 +2053,8 @@ function init() {
     hiddenImgInput: $('#hiddenImgInput'),
     pushColor: $('#pushColor'), pushOpacity: $('#pushOpacity'), pushRadius: $('#pushRadius'), pushShadow: $('#pushShadow'),
     fps: $('#fps'), vbr: $('#vbr'), exportFormat: $('#exportFormat'),
-    tplName: $('#tplName'), btnSaveTpl: $('#btnSaveTpl'),
-    btnExportTpl: $('#btnExportTpl'), btnImportTpl: $('#btnImportTpl'), tplGrid: $('#tplGrid')
+    btnSaveTpl: $('#btnSaveTpl'), btnExportTpl: $('#btnExportTpl'),
+    btnImportTpl: $('#btnImportTpl'), tplGrid: $('#tplGrid')
   };
   
   initTabs();
