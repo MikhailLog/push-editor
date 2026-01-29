@@ -2,6 +2,9 @@
 
 import { uid } from './utils.js';
 
+// Базовый URL API (автоопределение)
+const API_BASE = window.location.origin + '/api';
+
 export function createInitialState() {
   return {
     stage: { w: 1080, h: 1920, bg: "#09c35a", bgAlpha: 1, previewScale: 0.33 },
@@ -121,8 +124,266 @@ export function clampPush() {
   P.y = Math.min(Math.max(P.y, 0), H - P.h);
 }
 
-// Шаблоны - теперь сохраняются в папку templates проекта
+// ============================================
+// API для работы с шаблонами на сервере
+// ============================================
+
 let templatesCache = {};
+let apiAvailable = null; // null = не проверено, true/false = результат
+
+// Проверка доступности API
+async function checkApiAvailable() {
+  if (apiAvailable !== null) return apiAvailable;
+  
+  try {
+    const response = await fetch(`${API_BASE}/health`, { 
+      method: 'GET',
+      timeout: 3000 
+    });
+    apiAvailable = response.ok;
+  } catch (e) {
+    apiAvailable = false;
+  }
+  
+  console.log(`API шаблонов: ${apiAvailable ? 'доступен' : 'недоступен (локальный режим)'}`);
+  return apiAvailable;
+}
+
+// Инициализация - загрузка шаблонов
+export async function initTemplatesDir() {
+  await checkApiAvailable();
+  
+  // Загружаем старые шаблоны из localStorage для совместимости
+  try {
+    const oldTpls = JSON.parse(localStorage.getItem('pushTpls_v3_previews') || '{}');
+    if (Object.keys(oldTpls).length > 0) {
+      templatesCache = oldTpls;
+    }
+  } catch (e) {
+    console.error('Ошибка загрузки старых шаблонов:', e);
+  }
+  
+  // Если API доступен, загружаем шаблоны с сервера
+  if (apiAvailable) {
+    try {
+      const serverTemplates = await fetchTemplatesList();
+      // Объединяем с локальными (серверные приоритетнее)
+      for (const tpl of serverTemplates) {
+        templatesCache[tpl.name] = {
+          id: tpl.id,
+          thumb: tpl.thumb,
+          created: tpl.created,
+          updated: tpl.updated,
+          fromServer: true
+        };
+      }
+    } catch (e) {
+      console.error('Ошибка загрузки шаблонов с сервера:', e);
+    }
+  }
+}
+
+// Получить список шаблонов с сервера
+async function fetchTemplatesList() {
+  const response = await fetch(`${API_BASE}/templates`);
+  if (!response.ok) throw new Error('Ошибка загрузки списка шаблонов');
+  return await response.json();
+}
+
+// Получить полные данные шаблона с сервера
+async function fetchTemplate(id) {
+  const response = await fetch(`${API_BASE}/templates/${encodeURIComponent(id)}`);
+  if (!response.ok) throw new Error('Шаблон не найден');
+  return await response.json();
+}
+
+// Сохранить шаблон на сервер
+async function saveTemplateToServer(name, data, thumb) {
+  const response = await fetch(`${API_BASE}/templates`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, data, thumb })
+  });
+  
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Ошибка сохранения');
+  }
+  
+  return await response.json();
+}
+
+// Обновить шаблон на сервере
+async function updateTemplateOnServer(id, name, data, thumb) {
+  const response = await fetch(`${API_BASE}/templates/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, data, thumb })
+  });
+  
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Ошибка обновления');
+  }
+  
+  return await response.json();
+}
+
+// Удалить шаблон с сервера
+async function deleteTemplateFromServer(id) {
+  const response = await fetch(`${API_BASE}/templates/${encodeURIComponent(id)}`, {
+    method: 'DELETE'
+  });
+  
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Ошибка удаления');
+  }
+  
+  return await response.json();
+}
+
+// ============================================
+// Публичные функции для работы с шаблонами
+// ============================================
+
+// Получить список шаблонов
+export async function readTpls() {
+  // Обновляем список с сервера если доступен
+  if (await checkApiAvailable()) {
+    try {
+      const serverTemplates = await fetchTemplatesList();
+      // Обновляем кеш
+      const newCache = {};
+      for (const tpl of serverTemplates) {
+        newCache[tpl.name] = {
+          id: tpl.id,
+          thumb: tpl.thumb,
+          created: tpl.created,
+          updated: tpl.updated,
+          fromServer: true
+        };
+      }
+      templatesCache = newCache;
+    } catch (e) {
+      console.error('Ошибка обновления списка шаблонов:', e);
+    }
+  }
+  
+  return templatesCache;
+}
+
+// Загрузить данные конкретного шаблона
+export async function loadTemplate(name) {
+  const cached = templatesCache[name];
+  
+  // Если шаблон с сервера - загружаем полные данные
+  if (cached && cached.fromServer && cached.id) {
+    try {
+      const full = await fetchTemplate(cached.id);
+      return full.data;
+    } catch (e) {
+      console.error('Ошибка загрузки шаблона:', e);
+      throw e;
+    }
+  }
+  
+  // Локальный шаблон
+  if (cached && cached.data) {
+    return cached.data;
+  }
+  
+  throw new Error('Шаблон не найден');
+}
+
+// Сохранить шаблон
+export async function writeTpl(name, data, thumb) {
+  // Сохраняем в кеш
+  if (!templatesCache[name]) {
+    templatesCache[name] = {};
+  }
+  templatesCache[name].data = data;
+  templatesCache[name].thumb = thumb;
+  
+  // Если API доступен - сохраняем на сервер
+  if (await checkApiAvailable()) {
+    try {
+      const existing = templatesCache[name];
+      
+      if (existing && existing.fromServer && existing.id) {
+        // Обновляем существующий
+        const result = await updateTemplateOnServer(existing.id, name, data, thumb);
+        templatesCache[name].updated = result.updated;
+        console.log('Шаблон обновлён на сервере:', name);
+      } else {
+        // Создаём новый
+        const result = await saveTemplateToServer(name, data, thumb);
+        templatesCache[name].id = result.id;
+        templatesCache[name].fromServer = true;
+        templatesCache[name].created = result.created;
+        console.log('Шаблон сохранён на сервере:', name);
+      }
+      return true;
+    } catch (e) {
+      console.error('Ошибка сохранения на сервер:', e);
+      alert('Ошибка сохранения на сервер: ' + e.message);
+      return false;
+    }
+  }
+  
+  // Fallback: сохраняем локально через File System API
+  return await saveTemplateLocally(name, data, thumb);
+}
+
+// Сохранить как новый шаблон (копия)
+export async function writeTplAsNew(name, data, thumb) {
+  // Всегда создаём новый, не обновляем существующий
+  if (await checkApiAvailable()) {
+    try {
+      const result = await saveTemplateToServer(name, data, thumb);
+      templatesCache[name] = {
+        id: result.id,
+        data: data,
+        thumb: thumb,
+        fromServer: true,
+        created: result.created
+      };
+      console.log('Новый шаблон создан:', name);
+      return true;
+    } catch (e) {
+      console.error('Ошибка создания шаблона:', e);
+      alert('Ошибка создания шаблона: ' + e.message);
+      return false;
+    }
+  }
+  
+  return await saveTemplateLocally(name, data, thumb);
+}
+
+// Удалить шаблон
+export async function deleteTpl(name) {
+  const cached = templatesCache[name];
+  
+  // Удаляем с сервера если это серверный шаблон
+  if (cached && cached.fromServer && cached.id && await checkApiAvailable()) {
+    try {
+      await deleteTemplateFromServer(cached.id);
+      console.log('Шаблон удалён с сервера:', name);
+    } catch (e) {
+      console.error('Ошибка удаления с сервера:', e);
+      // Продолжаем удаление из кеша
+    }
+  }
+  
+  // Удаляем из кеша
+  delete templatesCache[name];
+  return true;
+}
+
+// ============================================
+// Локальное сохранение (fallback)
+// ============================================
+
 let templatesDirHandle = null;
 
 export function getTemplatesDirHandle() {
@@ -133,126 +394,53 @@ export function setTemplatesDirHandle(handle) {
   templatesDirHandle = handle;
 }
 
-export async function initTemplatesDir() {
-  // Инициализация - загружаем старые шаблоны из localStorage для совместимости
-  try {
-    const oldTpls = JSON.parse(localStorage.getItem('pushTpls_v3_previews') || '{}');
-    if (Object.keys(oldTpls).length > 0) {
-      templatesCache = oldTpls;
-      // Мигрируем старые шаблоны в файлы
-      // Старые шаблоны из localStorage будут доступны до первой загрузки из папки
-    }
-  } catch (e) {
-    console.error('Ошибка загрузки старых шаблонов:', e);
+async function saveTemplateLocally(name, data, thumb) {
+  if (!('showSaveFilePicker' in window)) {
+    console.warn('File System Access API не поддерживается');
+    return false;
   }
-}
-
-export async function readTpls() {
-  // Возвращаем кеш
-  return templatesCache || {};
-}
-
-export async function writeTpl(name, data, thumb) {
-  // Сохраняем в кеш
-  if (!templatesCache[name]) {
-    templatesCache[name] = {};
-  }
-  templatesCache[name].data = data;
-  templatesCache[name].thumb = thumb;
   
-  // Пытаемся сохранить в файл через File System Access API
-  if ('showSaveFilePicker' in window) {
-    try {
-      let fileHandle;
-      
-      // Если уже выбрана папка templates, используем её напрямую
-      const dirHandle = getTemplatesDirHandle();
-      if (dirHandle) {
-        try {
-          // Пытаемся создать или получить файл в выбранной папке
-          fileHandle = await dirHandle.getFileHandle(`${name}.json`, { create: true });
-        } catch (e) {
-          console.error('Ошибка создания файла в выбранной папке:', e);
-          // Если не получилось, используем showSaveFilePicker
-          fileHandle = await window.showSaveFilePicker({
-            suggestedName: `${name}.json`,
-            types: [{
-              description: 'JSON шаблон',
-              accept: { 'application/json': ['.json'] }
-            }],
-            startIn: 'downloads'
-          });
-        }
-      } else {
-        // Если папка не выбрана, предлагаем выбрать
+  try {
+    let fileHandle;
+    const dirHandle = getTemplatesDirHandle();
+    
+    if (dirHandle) {
+      try {
+        fileHandle = await dirHandle.getFileHandle(`${name}.json`, { create: true });
+      } catch (e) {
         fileHandle = await window.showSaveFilePicker({
           suggestedName: `${name}.json`,
-          types: [{
-            description: 'JSON шаблон',
-            accept: { 'application/json': ['.json'] }
-          }],
-          startIn: 'downloads'
+          types: [{ description: 'JSON шаблон', accept: { 'application/json': ['.json'] } }]
         });
       }
-      
-      const writable = await fileHandle.createWritable();
-      const templateData = {
-        name,
-        data,
-        thumb,
-        created: Date.now()
-      };
-      await writable.write(JSON.stringify(templateData, null, 2));
-      await writable.close();
-      
-      return true;
-    } catch (e) {
-      if (e.name !== 'AbortError') {
-        console.error('Ошибка сохранения шаблона:', e);
-      }
-      return false;
+    } else {
+      fileHandle = await window.showSaveFilePicker({
+        suggestedName: `${name}.json`,
+        types: [{ description: 'JSON шаблон', accept: { 'application/json': ['.json'] } }]
+      });
     }
-  }
-  
-  return false;
-}
-
-export async function deleteTpl(name) {
-  // Удаляем из кеша
-  if (templatesCache[name]) {
-    delete templatesCache[name];
-  }
-  
-  // Пытаемся удалить файл, если есть доступ к папке
-  const dirHandle = getTemplatesDirHandle();
-  if (dirHandle) {
-    try {
-      await dirHandle.removeEntry(`${name}.json`, { recursive: false });
-      return true;
-    } catch (e) {
-      console.error(`Ошибка удаления файла шаблона ${name}:`, e);
-      // Файл может не существовать, но это не критично - главное удалить из кеша
-      return true;
+    
+    const writable = await fileHandle.createWritable();
+    await writable.write(JSON.stringify({ name, data, thumb, created: Date.now() }, null, 2));
+    await writable.close();
+    return true;
+  } catch (e) {
+    if (e.name !== 'AbortError') {
+      console.error('Ошибка локального сохранения:', e);
     }
+    return false;
   }
-  
-  // Если нет доступа к папке, просто удаляем из кеша
-  return true;
 }
 
 export async function loadTemplatesFromFiles() {
   if (!('showDirectoryPicker' in window)) {
-    alert('File System Access API не поддерживается в вашем браузере. Используйте кнопку "Импорт .json" для загрузки отдельных шаблонов.');
+    alert('File System Access API не поддерживается. Используйте импорт .json');
     return templatesCache;
   }
   
   try {
-    const dirHandle = await window.showDirectoryPicker({
-      startIn: 'downloads'
-    });
-    
+    const dirHandle = await window.showDirectoryPicker({ startIn: 'downloads' });
     setTemplatesDirHandle(dirHandle);
-    const templates = {};
     
     for await (const entry of dirHandle.values()) {
       if (entry.kind === 'file' && entry.name.endsWith('.json')) {
@@ -260,32 +448,25 @@ export async function loadTemplatesFromFiles() {
           const file = await entry.getFile();
           const text = await file.text();
           const template = JSON.parse(text);
+          const name = template.name || entry.name.replace('.json', '');
           
-          if (template.name && template.data) {
-            templates[template.name] = {
+          if (template.data) {
+            templatesCache[name] = {
               data: template.data,
-              thumb: template.thumb || null
-            };
-          } else if (template.data) {
-            // Старый формат без поля name
-            const name = entry.name.replace('.json', '');
-            templates[name] = {
-              data: template.data,
-              thumb: template.thumb || null
+              thumb: template.thumb || null,
+              fromServer: false
             };
           }
         } catch (e) {
-          console.error(`Ошибка загрузки шаблона ${entry.name}:`, e);
+          console.error(`Ошибка загрузки ${entry.name}:`, e);
         }
       }
     }
     
-    templatesCache = templates;
-    return templates;
+    return templatesCache;
   } catch (e) {
     if (e.name !== 'AbortError') {
-      console.error('Ошибка загрузки шаблонов:', e);
-      alert('Ошибка загрузки шаблонов: ' + e.message);
+      console.error('Ошибка загрузки:', e);
     }
     return templatesCache;
   }
