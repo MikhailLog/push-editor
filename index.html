@@ -38,7 +38,7 @@
 </div>
 <script>
 (function() {
-  const AUTH_PASSWORD = '7789';
+  const AUTH_PASSWORD = '7899';
   const AUTH_KEY = 'push_editor_auth';
   
   // Проверяем сохранённую авторизацию (действует 24 часа)
@@ -120,7 +120,6 @@
           </div>
           <div class="row"><label>Размер аватара</label><input id="imgSize" type="range" min="40" max="260" step="1" value="120"><span style="font-size:11px;color:var(--text-secondary);min-width:35px;text-align:right" id="imgSizeValue">120px</span></div>
           <div class="row"><label>Скругление</label><input id="imgRadius" type="range" min="0" max="80" step="1" value="18"><span style="font-size:11px;color:var(--text-secondary);min-width:35px;text-align:right" id="imgRadiusValue">18px</span></div>
-          <div class="hint">Смещение убрано - двигайте аватар мышкой внутри плашки.</div>
         </div>
       </div>
 
@@ -155,7 +154,6 @@
           <div class="row"><label>Прозрачность</label><input id="pushOpacity" type="range" min="0.2" max="1" step="0.01" value="1"><span style="font-size:11px;color:var(--text-secondary);min-width:40px;text-align:right" id="pushOpacityValue">100%</span></div>
           <div class="row"><label>Скругление</label><input id="pushRadius" type="range" min="0" max="60" step="1" value="20"><span style="font-size:11px;color:var(--text-secondary);min-width:35px;text-align:right" id="pushRadiusValue">20px</span></div>
           <div class="row"><label>Тень</label><input id="pushShadow" type="range" min="0" max="40" step="1" value="18"><span style="font-size:11px;color:var(--text-secondary);min-width:35px;text-align:right" id="pushShadowValue">18px</span></div>
-          <div class="hint">Размер и позиция плашки убраны из панели - двигайте и растягивайте мышкой.</div>
         </div>
       </div>
 
@@ -194,7 +192,6 @@
             <button class="btn" id="btnPreview">Предпросмотр</button>
             <button class="btn" id="btnStop">Стоп</button>
           </div>
-          <div class="hint" style="grid-column:1/-1">Выберите сторону появления и ухода анимации. Нажатие имитирует надавливание всей плашки как единого объекта. "До начала" - пауза перед анимацией, "После окончания" - пауза после ухода.</div>
         </div>
       </div>
 
@@ -210,7 +207,6 @@
         </div>
         <div class="card" style="grid-column:1/-1">
           <div class="grid" id="tplGrid"></div>
-          <div class="hint">Клик по шаблону загружает его для редактирования. Кнопка "Сохранить" создаёт новый шаблон на сервере.</div>
         </div>
       </div>
 
@@ -236,7 +232,6 @@
           <div class="toolbar">
             <button class="btn primary" id="btnRecord">Записать видео</button>
           </div>
-          <div class="hint">Во время записи полностью скрываются контуры и вспомогательная графика. Текст не дублируется. MP4 конвертируется из WebM (может занять время).</div>
         </div>
       </div>
     </div>

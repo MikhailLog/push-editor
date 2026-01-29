@@ -748,13 +748,6 @@ async function refreshTplGrid() {
     grid.appendChild(div);
   });
   
-  if (Object.keys(all).length === 0) {
-    const hint = document.createElement('div');
-    hint.className = 'hint';
-    hint.style.cssText = 'grid-column:1/-1; text-align:center; padding:20px;';
-    hint.textContent = 'Шаблоны не найдены. Создайте первый шаблон!';
-    grid.appendChild(hint);
-  }
 }
 
 // Уведомление
