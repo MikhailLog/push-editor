@@ -26,6 +26,55 @@
 </script>
 </head>
 <body>
+<!-- Экран авторизации -->
+<div id="authScreen" style="position:fixed;inset:0;background:#0e1116;display:flex;align-items:center;justify-content:center;z-index:99999;">
+  <div style="background:#151a24;border:1px solid #2d3542;border-radius:12px;padding:32px;text-align:center;max-width:320px;width:90%;">
+    <h2 style="margin:0 0 8px;color:#e6e6e6;font-size:20px;">Push Editor</h2>
+    <p style="margin:0 0 24px;color:#a0a8b3;font-size:14px;">Введите пароль для доступа</p>
+    <input type="password" id="authPassword" placeholder="Пароль" style="width:100%;padding:12px;border-radius:8px;border:1px solid #2d3542;background:#0f1419;color:#e6e6e6;font-size:16px;text-align:center;margin-bottom:16px;outline:none;" autofocus>
+    <button id="authSubmit" style="width:100%;padding:12px;border-radius:8px;border:none;background:#2a7de1;color:#fff;font-size:14px;font-weight:600;cursor:pointer;">Войти</button>
+    <p id="authError" style="margin:12px 0 0;color:#e74c3c;font-size:13px;display:none;">Неверный пароль</p>
+  </div>
+</div>
+<script>
+(function() {
+  const AUTH_PASSWORD = '7789';
+  const AUTH_KEY = 'push_editor_auth';
+  
+  // Проверяем сохранённую авторизацию (действует 24 часа)
+  const savedAuth = localStorage.getItem(AUTH_KEY);
+  if (savedAuth) {
+    const authTime = parseInt(savedAuth, 10);
+    if (Date.now() - authTime < 24 * 60 * 60 * 1000) {
+      document.getElementById('authScreen').style.display = 'none';
+      return;
+    }
+  }
+  
+  const authScreen = document.getElementById('authScreen');
+  const authPassword = document.getElementById('authPassword');
+  const authSubmit = document.getElementById('authSubmit');
+  const authError = document.getElementById('authError');
+  
+  function checkPassword() {
+    if (authPassword.value === AUTH_PASSWORD) {
+      localStorage.setItem(AUTH_KEY, Date.now().toString());
+      authScreen.style.display = 'none';
+    } else {
+      authError.style.display = 'block';
+      authPassword.value = '';
+      authPassword.focus();
+    }
+  }
+  
+  authSubmit.addEventListener('click', checkPassword);
+  authPassword.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') checkPassword();
+    authError.style.display = 'none';
+  });
+})();
+</script>
+
 <div class="app">
   <div class="panel">
     <div class="tabs">
@@ -56,8 +105,8 @@
               <option value="1365x1024">4x3 - 1365x1024</option>
             </select>
           </div>
-          <div class="row" style="grid-column:1/-1"><label>Цвет фона</label><input type="color" id="bgColor" value="#09c35a"><input type="range" id="bgAlpha" min="0" max="1" step="0.01" value="1" style="flex:1"></div>
-          <div class="row" style="grid-column:1/-1"><label>Масштаб предпросмотра</label><input type="range" id="previewScale" min="0.2" max="0.9" step="0.01" value="0.33" style="flex:1"></div>
+          <div class="row" style="grid-column:1/-1"><label>Цвет фона</label><input type="color" id="bgColor" value="#09c35a" style="width:40px;min-width:40px;flex:0 0 40px;padding:2px;"><input type="range" id="bgAlpha" min="0" max="1" step="0.01" value="1" style="flex:1;margin-left:8px;"><span id="bgAlphaValue" style="font-size:11px;color:var(--text-secondary);min-width:35px;text-align:right">100%</span></div>
+          <div class="row" style="grid-column:1/-1"><label>Масштаб</label><input type="range" id="previewScale" min="0.2" max="0.9" step="0.01" value="0.33" style="flex:1"><span id="previewScaleValue" style="font-size:11px;color:var(--text-secondary);min-width:35px;text-align:right">33%</span></div>
           <div class="hint" style="grid-column:1/-1">Двойной клик по аватару - загрузка изображения. Двойной клик внутри плашки - новый текст.</div>
         </div>
 
@@ -134,7 +183,7 @@
               <option value="right">Вправо</option>
             </select>
           </div>
-          <div class="row"><label>После окончания, c</label><input id="aAfterEnd" type="number" min="0" step="0.1" value="0"></div>
+          <div class="row"><label>После окончания, c</label><input id="aAfterEnd" type="number" min="0" step="0.1" value="1"></div>
           <div class="row"><label>Нажатие</label>
             <select id="pressEnabled"><option value="on" selected>Включить</option><option value="off">Выключить</option></select>
           </div>

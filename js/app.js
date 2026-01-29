@@ -108,7 +108,9 @@ function applyUI() {
   ui.customH.value = state.stage.h;
   ui.bgColor.value = toHex(state.stage.bg);
   ui.bgAlpha.value = state.stage.bgAlpha;
+  if (ui.bgAlphaValue) ui.bgAlphaValue.textContent = Math.round(state.stage.bgAlpha * 100) + '%';
   ui.previewScale.value = state.stage.previewScale;
+  if (ui.previewScaleValue) ui.previewScaleValue.textContent = Math.round(state.stage.previewScale * 100) + '%';
 
   ui.imgShape.value = state.img.shape;
   ui.imgSize.value = state.img.size;
@@ -202,10 +204,12 @@ function setupEventListeners() {
 
   ui.bgAlpha.addEventListener('input', e => {
     state.stage.bgAlpha = parseFloat(e.target.value);
+    if (ui.bgAlphaValue) ui.bgAlphaValue.textContent = Math.round(state.stage.bgAlpha * 100) + '%';
   });
 
   ui.previewScale.addEventListener('input', e => {
     state.stage.previewScale = parseFloat(e.target.value);
+    if (ui.previewScaleValue) ui.previewScaleValue.textContent = Math.round(state.stage.previewScale * 100) + '%';
     updateCanvasCssSize();
     hideEditor();
   });
@@ -1952,7 +1956,8 @@ function init() {
   
   ui = {
     customW: $('#customW'), customH: $('#customH'), preset: $('#preset'),
-    bgColor: $('#bgColor'), bgAlpha: $('#bgAlpha'), previewScale: $('#previewScale'),
+    bgColor: $('#bgColor'), bgAlpha: $('#bgAlpha'), bgAlphaValue: $('#bgAlphaValue'),
+    previewScale: $('#previewScale'), previewScaleValue: $('#previewScaleValue'),
     imgShape: $('#imgShape'), imgSize: $('#imgSize'), imgRadius: $('#imgRadius'),
     fontFamily: $('#fontFamily'), fontWeight: $('#fontWeight'), fontSize: $('#fontSize'), 
     fontColor: $('#fontColor'), fontAlign: $('#fontAlign'), lineHeight: $('#lineHeight'),

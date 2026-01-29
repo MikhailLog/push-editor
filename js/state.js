@@ -15,7 +15,7 @@ export function createInitialState() {
       { id: uid(), text: "Короткое описание уведомления", x: 140, y: 76, family: "Inter", weight: "400", size: 30, color: "#333333", align: "left", line: 1.15, blurIntensity: 10 },
       { id: uid(), text: "now", x: 140, y: 128, family: "Inter", weight: "600", size: 26, color: "#1b7ae0", align: "left", line: 1.1, blurIntensity: 10 }
     ],
-    anim: { beforeStart: 0, delay: 0, in: 0.6, hold: 1.4, out: 0.6, afterEnd: 0, inDirection: 'top', outDirection: 'top', pressOn: true, pressAt: 1.0, pressDur: 0.18, pressDepth: 0.06 },
+    anim: { beforeStart: 0, delay: 0, in: 0.6, hold: 1.4, out: 0.6, afterEnd: 1, inDirection: 'top', outDirection: 'top', pressOn: true, pressAt: 1.0, pressDur: 0.18, pressDepth: 0.06 },
     runtime: { playing: false, recording: false, t0: 0, recorder: null, chunks: [], raf: 0, preview: false },
     selection: { target: null, textId: null, mode: null, start: { x: 0, y: 0 }, orig: {} }
   };
