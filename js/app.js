@@ -325,8 +325,8 @@ function setupEventListeners() {
   ui.btnStop.addEventListener('click', stopAll);
 
   ui.btnSaveTpl.addEventListener('click', async () => {
-    // Показываем модальное окно для ввода названия
-    const defaultName = 'template-' + new Date().toISOString().slice(0,10).replace(/-/g, '');
+    // Генерируем имя в формате DD.MM.YY-N
+    const defaultName = await generateNextTemplateName();
     const name = await showSaveTemplateDialog(defaultName);
     if (!name) return; // Отменено
     
@@ -748,6 +748,31 @@ async function refreshTplGrid() {
     grid.appendChild(div);
   });
   
+}
+
+// Генерация следующего имени шаблона в формате DD.MM.YY-N
+async function generateNextTemplateName() {
+  const all = await readTpls();
+  const names = Object.keys(all);
+  
+  // Находим максимальный номер среди всех шаблонов
+  let maxNum = 0;
+  names.forEach(name => {
+    // Парсим имена в формате DD.MM.YY-N или просто ищем -N в конце
+    const match = name.match(/-(\d+)$/);
+    if (match) {
+      const num = parseInt(match[1], 10);
+      if (num > maxNum) maxNum = num;
+    }
+  });
+  
+  // Текущая дата в формате DD.MM.YY
+  const now = new Date();
+  const day = String(now.getDate()).padStart(2, '0');
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const year = String(now.getFullYear()).slice(-2);
+  
+  return `${day}.${month}.${year}-${maxNum + 1}`;
 }
 
 // Модальное окно для сохранения шаблона
